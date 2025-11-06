@@ -240,6 +240,43 @@ body {
     font-size: 14px;
   }
 
+  .sync-progress-wrapper {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 24px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  .sync-progress-wrapper .progress {
+    height: 32px;
+    border-radius: 8px;
+    background-color: #f0f0f0;
+    overflow: hidden;
+    margin-bottom: 12px;
+  }
+
+  .sync-progress-wrapper .progress-bar {
+    background: linear-gradient(90deg, #008060 0%, #00a67e 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 14px;
+    color: white;
+    transition: width 0.3s ease;
+  }
+
+  .progress-text {
+    text-align: center;
+    font-size: 14px;
+    color: #6d7175;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
   .btn {
     font-weight: 500;
     padding: 10px 20px;

@@ -55,12 +55,28 @@ export default function Admin() {
   const refreshData = async () => {
     setIsRefreshing(true);
     try {
+      console.log("Fetching relations from:", `${backendUrl}/api/relations?shop=${shop}`);
       const res = await fetch(`${backendUrl}/api/relations?shop=${shop}`);
+      
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+      
       const data = await res.json();
-      setRelations(data.relations || []);
-      console.log("Data refreshed:", data.relations);
+      console.log("API Response:", data);
+      console.log("Relations data:", data.relations);
+      console.log("Relations count:", data.relations?.length || 0);
+      
+      // Ensure we have the correct data structure
+      const relationsData = Array.isArray(data.relations) ? data.relations : [];
+      setRelations(relationsData);
+      
+      if (relationsData.length > 0) {
+        console.log("First relation sample:", relationsData[0]);
+      }
     } catch (err) {
       console.error("Failed to refresh data:", err);
+      setSyncStatus({ show: true, message: "Failed to refresh data. Please reload the page.", type: "danger" });
     } finally {
       setIsRefreshing(false);
     }
@@ -210,6 +226,9 @@ export default function Admin() {
 
       // Start sync (fire and forget)
       fetch(`${backendUrl}/sync-collections?shop=${shop}`)
+        .then((response) => {
+          console.log("Sync request initiated, status:", response.status);
+        })
         .catch((err) => {
           console.error("Sync request failed:", err);
           setSyncStatus({ show: true, message: "Failed to start sync. Please try again.", type: "danger" });
@@ -219,42 +238,58 @@ export default function Admin() {
         });
 
       // Listen for real-time progress
+      console.log("Connecting to EventSource:", `${backendUrl}/sync-stream?shop=${shop}`);
       const evtSource = new EventSource(`${backendUrl}/sync-stream?shop=${shop}`);
       evtSourceRef.current = evtSource;
 
+      evtSource.onopen = () => {
+        console.log("EventSource connection opened");
+      };
+
       evtSource.onmessage = (e) => {
         try {
+          console.log("EventSource message received:", e.data);
           const data = JSON.parse(e.data);
-          const progress = data.progress || 0;
+          const progress = typeof data.progress === 'number' ? Math.min(100, Math.max(0, data.progress)) : 0;
+          console.log("Progress update:", progress + "%");
+          
           setSyncProgress({ show: true, value: progress });
 
           if (progress >= 100) {
+            console.log("Sync completed, closing EventSource");
             evtSource.close();
             evtSourceRef.current = null;
             setSyncBtnState({ disabled: false, label: "Sync Now", loading: false });
             setSyncStatus({ show: true, message: "Sync completed successfully. Refreshing data...", type: "success" });
             setSyncHint(false);
-            setSyncProgress({ show: false, value: 0 });
             
-            // Refresh data immediately after sync completes
+            // Keep progress bar at 100% for a moment, then refresh data
             setTimeout(async () => {
+              console.log("Refreshing data after sync...");
               await refreshData();
+              setSyncProgress({ show: false, value: 0 });
               setSyncStatus({ show: true, message: "Sync completed successfully! Data has been updated.", type: "success" });
-            }, 2000);
+            }, 1500);
           }
         } catch (err) {
-          console.error("Error parsing progress:", err);
+          console.error("Error parsing progress:", err, "Raw data:", e.data);
         }
       };
 
       evtSource.onerror = (err) => {
         console.error("EventSource error:", err);
-        evtSource.close();
-        evtSourceRef.current = null;
-        setSyncStatus({ show: true, message: "Sync failed or connection lost.", type: "danger" });
-        setSyncBtnState({ disabled: false, label: "Sync Now", loading: false });
-        setSyncHint(false);
-        setSyncProgress({ show: false, value: 0 });
+        // Don't close immediately on first error - might be temporary
+        if (evtSource.readyState === EventSource.CLOSED) {
+          evtSource.close();
+          evtSourceRef.current = null;
+          setSyncStatus({ show: true, message: "Sync connection lost. Please check if sync completed.", type: "warning" });
+          setSyncBtnState({ disabled: false, label: "Sync Now", loading: false });
+          setSyncHint(false);
+          // Try to refresh data anyway in case sync completed
+          setTimeout(async () => {
+            await refreshData();
+          }, 2000);
+        }
       };
     });
   };
@@ -350,17 +385,26 @@ export default function Admin() {
 
       {/* Progress bar */}
       {syncProgress.show && (
-        <div className="progress mb-3" id="sync-progress-container">
-          <div
-            id="sync-progress-bar"
-            className="progress-bar"
-            role="progressbar"
-            style={{ width: `${syncProgress.value}%` }}
-            aria-valuenow={syncProgress.value}
-            aria-valuemin="0"
-            aria-valuemax="100"
-          >
-            {syncProgress.value}%
+        <div className="sync-progress-wrapper">
+          <div className="progress mb-3" id="sync-progress-container">
+            <div
+              id="sync-progress-bar"
+              className="progress-bar progress-bar-striped progress-bar-animated"
+              role="progressbar"
+              style={{ 
+                width: `${syncProgress.value}%`,
+                minWidth: syncProgress.value > 0 ? '2em' : '0'
+              }}
+              aria-valuenow={syncProgress.value}
+              aria-valuemin="0"
+              aria-valuemax="100"
+            >
+              {Math.round(syncProgress.value)}%
+            </div>
+          </div>
+          <div className="progress-text">
+            <i className="fas fa-sync-alt fa-spin me-2"></i>
+            Syncing collections... {Math.round(syncProgress.value)}%
           </div>
         </div>
       )}
@@ -389,70 +433,91 @@ export default function Admin() {
       )}
 
       <div className="collections-grid">
-        {relations?.map((rel) => (
-          <div key={rel.parent.id} className="collection-card">
-            <div className="card-header">
-              <h4 className="card-title">
-                <i className="fas fa-folder-open me-2 text-primary"></i>
-                <strong>{rel.parent.title}</strong>
-              </h4>
-              <a
-                href={`https://${shop}/admin/collections/${rel.parent.id}`}
-                className="edit-link"
-                target="_blank"
-                rel="noreferrer"
-                title="Edit collection"
-              >
-                <i className="fas fa-external-link-alt"></i>
-              </a>
-            </div>
+        {relations?.map((rel, index) => {
+          // Log each relation for debugging
+          if (index === 0) {
+            console.log("Rendering relation:", rel);
+            console.log("Parent:", rel.parent);
+            console.log("Children:", rel.children);
+          }
+          
+          // Ensure we have valid parent and children
+          if (!rel || !rel.parent) {
+            console.warn("Invalid relation structure:", rel);
+            return null;
+          }
 
-            {rel.children && rel.children.length > 0 ? (
-              <div className="children-list">
-                {rel.children.map((child) => (
-                  <div key={child.id} className="child-item">
-                    <div className="child-content">
-                      <div className="child-header">
-                        <h5 className="child-title">
-                          <i className="fas fa-folder me-2"></i>
-                          {child.title}
-                        </h5>
-                        <a
-                          href={`https://${shop}/admin/collections/${child.id}`}
-                          className="child-edit-link"
-                          target="_blank"
-                          rel="noreferrer"
-                          title="Edit collection"
-                        >
-                          <i className="fas fa-external-link-alt"></i>
-                        </a>
-                      </div>
-                      <div className="child-details">
-                        <div className="detail-item">
-                          <span className="detail-label">
-                            <i className="fas fa-tag me-1"></i>Tag:
-                          </span>
-                          <code className="detail-value">{child.tag}</code>
-                        </div>
-                        <div className="detail-item">
-                          <span className="detail-label">
-                            <i className="fas fa-redo me-1"></i>Redirect:
-                          </span>
-                          <code className="detail-value">{child.redirect}</code>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+          return (
+            <div key={rel.parent?.id || index} className="collection-card">
+              <div className="card-header">
+                <h4 className="card-title">
+                  <i className="fas fa-folder-open me-2 text-primary"></i>
+                  <strong>{rel.parent.title || 'Untitled Collection'}</strong>
+                </h4>
+                <a
+                  href={`https://${shop}/admin/collections/${rel.parent.id}`}
+                  className="edit-link"
+                  target="_blank"
+                  rel="noreferrer"
+                  title="Edit collection"
+                >
+                  <i className="fas fa-external-link-alt"></i>
+                </a>
               </div>
-            ) : (
-              <div className="no-children">
-                <i className="fas fa-info-circle me-2"></i>
-                No child collections
-              </div>
-            )}
-          </div>
-        ))}
+
+              {rel.children && Array.isArray(rel.children) && rel.children.length > 0 ? (
+                <div className="children-list">
+                  {rel.children.map((child, childIndex) => {
+                    if (!child || !child.id) {
+                      console.warn("Invalid child structure:", child);
+                      return null;
+                    }
+                    return (
+                      <div key={child.id || childIndex} className="child-item">
+                        <div className="child-content">
+                          <div className="child-header">
+                            <h5 className="child-title">
+                              <i className="fas fa-folder me-2"></i>
+                              {child.title || 'Untitled Child'}
+                            </h5>
+                            <a
+                              href={`https://${shop}/admin/collections/${child.id}`}
+                              className="child-edit-link"
+                              target="_blank"
+                              rel="noreferrer"
+                              title="Edit collection"
+                            >
+                              <i className="fas fa-external-link-alt"></i>
+                            </a>
+                          </div>
+                          <div className="child-details">
+                            <div className="detail-item">
+                              <span className="detail-label">
+                                <i className="fas fa-tag me-1"></i>Tag:
+                              </span>
+                              <code className="detail-value">{child.tag || 'N/A'}</code>
+                            </div>
+                            <div className="detail-item">
+                              <span className="detail-label">
+                                <i className="fas fa-redo me-1"></i>Redirect:
+                              </span>
+                              <code className="detail-value">{child.redirect || 'N/A'}</code>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="no-children">
+                  <i className="fas fa-info-circle me-2"></i>
+                  No child collections
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {/* Confirmation Modal */}
