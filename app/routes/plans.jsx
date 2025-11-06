@@ -18,19 +18,20 @@ export async function loader({ request }) {
   const url = new URL(request.url);
   const shop = url.searchParams.get("shop");
 
-  const plansRes = await fetch(`${process.env.BACKEND_URL}/api/plans?shop=${shop}`);
+  const backendUrl = process.env.BACKEND_URL || "https://subcollection.allgovjobs.com";
+  const plansRes = await fetch(`${backendUrl}/api/plans?shop=${shop}`);
   const { plans, currentPlan } = await plansRes.json();
 
-  return json({ plans, currentPlan, shop });
+  return json({ plans, currentPlan, shop, backendUrl });
 }
 
 export default function Plans() {
-  const { plans, currentPlan, shop } = useLoaderData();
+  const { plans, currentPlan, shop, backendUrl } = useLoaderData();
 
   async function handlePurchase(planId) {
     try {
       const response = await fetch(
-        `${process.env.BACKEND_URL}/plans/purchase?shop=${encodeURIComponent(shop)}&planId=${encodeURIComponent(planId)}`,
+        `${backendUrl}/plans/purchase?shop=${encodeURIComponent(shop)}&planId=${encodeURIComponent(planId)}`,
         {
           method: "GET",
           headers: {
