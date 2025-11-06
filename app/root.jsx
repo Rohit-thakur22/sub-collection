@@ -1,29 +1,33 @@
+// app/root.jsx
 import {
   Links,
+  LiveReload,
   Meta,
   Outlet,
   Scripts,
   ScrollRestoration,
 } from "@remix-run/react";
+import { AppProvider } from "@shopify/polaris";
+import "@shopify/polaris/build/esm/styles.css";
+
+export function meta() {
+  return [{ title: "Sub Collection App" }];
+}
 
 export default function App() {
   return (
-    <html>
+    <html lang="en">
       <head>
-        <meta charSet="utf-8" />
-        <meta name="viewport" content="width=device-width,initial-scale=1" />
-        <link rel="preconnect" href="https://cdn.shopify.com/" />
-        <link
-          rel="stylesheet"
-          href="https://cdn.shopify.com/static/fonts/inter/v4/styles.css"
-        />
         <Meta />
         <Links />
       </head>
-      <body>
-        <Outlet />
+      <body style={{ background: "#f6f6f7" }}>
+        <AppProvider i18n={{}}>
+          <Outlet />
+        </AppProvider>
         <ScrollRestoration />
         <Scripts />
+        <LiveReload />
       </body>
     </html>
   );

@@ -1,22 +1,15 @@
-// app/routes/plans.tsx
 import { json } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
 import styles from "../styles/plans.css";
-export function links() {
-  return [{ rel: "stylesheet", href: styles }];
-}
+
+export const links = () => [{ rel: "stylesheet", href: styles }];
 
 export async function loader({ request }) {
   const url = new URL(request.url);
   const shop = url.searchParams.get("shop");
 
-  const [plansRes, currentPlanRes] = await Promise.all([
-    fetch(`${process.env.API_URL}/plans?shop=${shop}`),
-    fetch(`${process.env.API_URL}/current-plan?shop=${shop}`),
-  ]);
-
-  const plans = await plansRes.json();
-  const currentPlan = await currentPlanRes.json();
+  const plansRes = await fetch(`${process.env.BACKEND_URL}/api/plans?shop=${shop}`);
+  const { plans, currentPlan } = await plansRes.json();
 
   return json({ plans, currentPlan, shop });
 }
@@ -25,20 +18,14 @@ export default function Plans() {
   const { plans, currentPlan, shop } = useLoaderData();
 
   async function handlePurchase(planId) {
-    try {
-      const response = await fetch(
-        `/plans/purchase?shop=${encodeURIComponent(shop)}&planId=${encodeURIComponent(planId)}`
-      );
-
-      const data = await response.json();
-      if (data.confirmationUrl) {
-        window.top.location.href = data.confirmationUrl;
-      } else {
-        alert("Failed to get billing confirmation URL.");
-      }
-    } catch (err) {
-      console.error(err);
-      alert("Error initiating purchase. Please try again.");
+    const res = await fetch(
+      `${process.env.BACKEND_URL}/plans/purchase?shop=${shop}&planId=${planId}`
+    );
+    const data = await res.json();
+    if (data.confirmationUrl) {
+      window.top.location.href = data.confirmationUrl;
+    } else {
+      alert("Billing setup failed!");
     }
   }
 

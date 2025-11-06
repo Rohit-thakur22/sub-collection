@@ -1,31 +1,26 @@
 body {
     background-color: #f6f9fc;
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
   }
-
+  
   .plan-card {
     border: 1px solid #e3e8ee;
     border-radius: 12px;
     transition: box-shadow 0.2s ease-in-out;
   }
-
+  
   .plan-card:hover {
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
   }
-
+  
   .plan-price {
     font-size: 24px;
     font-weight: 600;
     color: #212529;
   }
-
+  
   .plan-name {
     font-size: 18px;
     font-weight: 500;
     color: #3c4043;
   }
-
-  .card-footer {
-    background: transparent;
-    border-top: none;
-  }
+  
