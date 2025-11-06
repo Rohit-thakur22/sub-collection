@@ -125,3 +125,7 @@ body {
     opacity: 1;
     font-size: 1.25rem;
   }
+
+  .shopify-green {
+    color: #008060;
+  }

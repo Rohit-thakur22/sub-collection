@@ -2,7 +2,17 @@ import { json } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
 import styles from "../styles/plans.css";
 
-export const links = () => [{ rel: "stylesheet", href: styles }];
+export const links = () => [
+  { rel: "stylesheet", href: "https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" },
+  { rel: "stylesheet", href: styles },
+];
+
+export const meta = () => {
+  return [
+    { title: "Plans" },
+    { name: "viewport", content: "width=device-width, initial-scale=1.0" },
+  ];
+};
 
 export async function loader({ request }) {
   const url = new URL(request.url);
@@ -18,14 +28,29 @@ export default function Plans() {
   const { plans, currentPlan, shop } = useLoaderData();
 
   async function handlePurchase(planId) {
-    const res = await fetch(
-      `${process.env.BACKEND_URL}/plans/purchase?shop=${shop}&planId=${planId}`
-    );
-    const data = await res.json();
-    if (data.confirmationUrl) {
-      window.top.location.href = data.confirmationUrl;
-    } else {
-      alert("Billing setup failed!");
+    try {
+      const response = await fetch(
+        `${process.env.BACKEND_URL}/plans/purchase?shop=${encodeURIComponent(shop)}&planId=${encodeURIComponent(planId)}`,
+        {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) throw new Error("Network response was not ok");
+
+      const data = await response.json();
+
+      if (data.confirmationUrl) {
+        window.top.location.href = data.confirmationUrl;
+      } else {
+        alert("Failed to get billing confirmation URL.");
+      }
+    } catch (error) {
+      console.error("Error during purchase:", error);
+      alert("Error initiating purchase. Please try again.");
     }
   }
 
@@ -34,7 +59,7 @@ export default function Plans() {
       <h2 className="mb-4 text-center">Available Plans for {shop}</h2>
 
       <div className="row g-4 justify-content-center">
-        {plans.map((plan) => (
+        {plans?.map((plan) => (
           <div key={plan._id} className="col-md-4">
             <div className="card plan-card h-100">
               <div className="card-body d-flex flex-column justify-content-between">
@@ -45,7 +70,9 @@ export default function Plans() {
                   </p>
                   <p className="text-muted mb-1">
                     Collection Limit:{" "}
-                    {plan.collection_limit ?? "Unlimited"}
+                    {typeof plan.collection_limit !== "undefined"
+                      ? plan.collection_limit
+                      : "Unlimited"}
                   </p>
                 </div>
               </div>
@@ -57,7 +84,9 @@ export default function Plans() {
                   </button>
                 ) : (
                   <button
-                    className="btn btn-dark w-100"
+                    className="btn btn-dark w-100 choose-plan-btn"
+                    data-shop={shop}
+                    data-plan-id={plan._id}
                     onClick={() => handlePurchase(plan._id)}
                   >
                     Choose Plan
