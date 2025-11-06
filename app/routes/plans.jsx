@@ -1,10 +1,11 @@
 import { json } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
-import styles from "../styles/plans.css";
+import plansStyles from "../styles/plans.css?url";
 
 export const links = () => [
   { rel: "stylesheet", href: "https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" },
-  { rel: "stylesheet", href: styles },
+  { rel: "stylesheet", href: "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" },
+  { rel: "stylesheet", href: plansStyles },
 ];
 
 export const meta = () => {
@@ -56,40 +57,62 @@ export default function Plans() {
   }
 
   return (
-    <div className="container py-5">
-      <h2 className="mb-4 text-center">Available Plans for {shop}</h2>
+    <div className="plans-container">
+      <div className="plans-header">
+        <h1 className="plans-title">
+          <i className="fas fa-crown me-2"></i>
+          Available Plans
+        </h1>
+        <p className="plans-subtitle">Choose the perfect plan for {shop}</p>
+      </div>
 
-      <div className="row g-4 justify-content-center">
+      <div className="plans-grid">
         {plans?.map((plan) => (
-          <div key={plan._id} className="col-md-4">
-            <div className="card plan-card h-100">
-              <div className="card-body d-flex flex-column justify-content-between">
-                <div>
-                  <h5 className="plan-name">{plan.name}</h5>
-                  <p className="plan-price">
-                    {plan.price} {plan.currency} / {plan.interval}
-                  </p>
-                  <p className="text-muted mb-1">
-                    Collection Limit:{" "}
-                    {typeof plan.collection_limit !== "undefined"
-                      ? plan.collection_limit
-                      : "Unlimited"}
-                  </p>
+          <div key={plan._id} className="plan-card-wrapper">
+            <div className={`plan-card ${currentPlan?.name === plan.name ? 'current-plan' : ''}`}>
+              {currentPlan?.name === plan.name && (
+                <div className="current-badge">
+                  <i className="fas fa-check-circle me-1"></i>
+                  Current Plan
+                </div>
+              )}
+              <div className="plan-card-body">
+                <div className="plan-header">
+                  <h3 className="plan-name">{plan.name}</h3>
+                  <div className="plan-price">
+                    <span className="price-amount">{plan.price}</span>
+                    <span className="price-currency">{plan.currency}</span>
+                    <span className="price-interval">/{plan.interval}</span>
+                  </div>
+                </div>
+                
+                <div className="plan-features">
+                  <div className="feature-item">
+                    <i className="fas fa-check-circle text-success me-2"></i>
+                    <span>
+                      <strong>Collection Limit:</strong>{" "}
+                      {typeof plan.collection_limit !== "undefined"
+                        ? plan.collection_limit
+                        : "Unlimited"}
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              <div className="card-footer text-center">
+              <div className="plan-card-footer">
                 {currentPlan?.name === plan.name ? (
                   <button className="btn btn-secondary w-100" disabled>
+                    <i className="fas fa-check me-2"></i>
                     Current Plan
                   </button>
                 ) : (
                   <button
-                    className="btn btn-dark w-100 choose-plan-btn"
+                    className="btn btn-primary w-100 choose-plan-btn"
                     data-shop={shop}
                     data-plan-id={plan._id}
                     onClick={() => handlePurchase(plan._id)}
                   >
+                    <i className="fas fa-arrow-right me-2"></i>
                     Choose Plan
                   </button>
                 )}

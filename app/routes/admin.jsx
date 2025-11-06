@@ -35,18 +35,36 @@ export async function loader({ request }) {
 }
 
 export default function Admin() {
-  const { relations, currentPlan, shop, appUrl, backendUrl } = useLoaderData();
+  const loaderData = useLoaderData();
+  const { relations: initialRelations, currentPlan, shop, appUrl, backendUrl } = loaderData;
+  const [relations, setRelations] = useState(initialRelations || []);
   const [syncStatus, setSyncStatus] = useState({ show: false, message: "", type: "" });
   const [syncProgress, setSyncProgress] = useState({ show: false, value: 0 });
   const [syncHint, setSyncHint] = useState(false);
   const [syncBtnState, setSyncBtnState] = useState({ disabled: false, label: "Sync Now", loading: false });
   const [resetBtnState, setResetBtnState] = useState({ disabled: false, label: "Reset", loading: false });
   const [bootstrapReady, setBootstrapReady] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const confirmationModalRef = useRef(null);
   const confirmMessageRef = useRef(null);
   const confirmBtnRef = useRef(null);
   const evtSourceRef = useRef(null);
   const modalInstanceRef = useRef(null);
+
+  // Function to refresh data from API
+  const refreshData = async () => {
+    setIsRefreshing(true);
+    try {
+      const res = await fetch(`${backendUrl}/api/relations?shop=${shop}`);
+      const data = await res.json();
+      setRelations(data.relations || []);
+      console.log("Data refreshed:", data.relations);
+    } catch (err) {
+      console.error("Failed to refresh data:", err);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   useEffect(() => {
     // Check if Bootstrap is already loaded
@@ -214,10 +232,15 @@ export default function Admin() {
             evtSource.close();
             evtSourceRef.current = null;
             setSyncBtnState({ disabled: false, label: "Sync Now", loading: false });
-            setSyncStatus({ show: true, message: "Sync completed successfully.", type: "success" });
+            setSyncStatus({ show: true, message: "Sync completed successfully. Refreshing data...", type: "success" });
             setSyncHint(false);
             setSyncProgress({ show: false, value: 0 });
-            setTimeout(() => window.location.reload(), 6000);
+            
+            // Refresh data immediately after sync completes
+            setTimeout(async () => {
+              await refreshData();
+              setSyncStatus({ show: true, message: "Sync completed successfully! Data has been updated.", type: "success" });
+            }, 2000);
           }
         } catch (err) {
           console.error("Error parsing progress:", err);
@@ -248,7 +271,10 @@ export default function Admin() {
             throw new Error(`HTTP error! status: ${response.status}`);
           }
           setResetBtnState({ disabled: false, label: "Done!", loading: false });
-          setTimeout(() => window.location.reload(), 1000);
+          // Refresh data after reset
+          setTimeout(async () => {
+            await refreshData();
+          }, 500);
         })
         .catch((err) => {
           console.error("Reset failed:", err);
@@ -259,49 +285,60 @@ export default function Admin() {
   };
 
   return (
-    <div className="container">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1 className="shopify-green">Parent & Child Collection Relations</h1>
-
-        {currentPlan?.name === "Basic" && (
-          <a href={`${appUrl}/plans?shop=${shop}`} className="btn btn-dark" id="plan-btn">
-            <span id="plan-label">Explore Plans</span>
-          </a>
-        )}
-
-        <button
-          id="reset-btn"
-          className="btn btn-danger"
-          onClick={handleReset}
-          disabled={resetBtnState.disabled}
-        >
-          <span id="reset-label">{resetBtnState.label}</span>
-          {resetBtnState.loading && (
-            <span
-              id="reset-spinner"
-              className="spinner-border spinner-border-sm"
-              role="status"
-              aria-hidden="true"
-            ></span>
+    <div className="admin-container">
+      <div className="admin-header">
+        <div className="header-content">
+          <h1 className="page-title">
+            <i className="fas fa-sitemap me-2"></i>
+            Parent & Child Collection Relations
+          </h1>
+          <p className="page-subtitle">Manage your collection hierarchy and relationships</p>
+        </div>
+        
+        <div className="header-actions">
+          {currentPlan?.name === "Basic" && (
+            <a href={`${appUrl}/plans?shop=${shop}`} className="btn btn-outline-dark" id="plan-btn">
+              <i className="fas fa-crown me-2"></i>
+              <span id="plan-label">Explore Plans</span>
+            </a>
           )}
-        </button>
 
-        <button
-          id="sync-btn"
-          className="btn btn-success"
-          onClick={handleSync}
-          disabled={syncBtnState.disabled}
-        >
-          <span id="sync-label">{syncBtnState.label}</span>
-          {syncBtnState.loading && (
-            <span
-              id="sync-spinner"
-              className="spinner-border spinner-border-sm"
-              role="status"
-              aria-hidden="true"
-            ></span>
-          )}
-        </button>
+          <button
+            id="reset-btn"
+            className="btn btn-outline-danger"
+            onClick={handleReset}
+            disabled={resetBtnState.disabled}
+          >
+            <i className="fas fa-trash-alt me-2"></i>
+            <span id="reset-label">{resetBtnState.label}</span>
+            {resetBtnState.loading && (
+              <span
+                id="reset-spinner"
+                className="spinner-border spinner-border-sm ms-2"
+                role="status"
+                aria-hidden="true"
+              ></span>
+            )}
+          </button>
+
+          <button
+            id="sync-btn"
+            className="btn btn-primary"
+            onClick={handleSync}
+            disabled={syncBtnState.disabled}
+          >
+            <i className="fas fa-sync-alt me-2"></i>
+            <span id="sync-label">{syncBtnState.label}</span>
+            {syncBtnState.loading && (
+              <span
+                id="sync-spinner"
+                className="spinner-border spinner-border-sm ms-2"
+                role="status"
+                aria-hidden="true"
+              ></span>
+            )}
+          </button>
+        </div>
       </div>
 
       {syncHint && (
@@ -334,49 +371,89 @@ export default function Admin() {
         </div>
       )}
 
-      {!relations?.length && (
-        <div className="alert alert-warning">No parent-child collections found.</div>
+      {isRefreshing && (
+        <div className="refresh-indicator">
+          <div className="spinner-border spinner-border-sm me-2" role="status">
+            <span className="visually-hidden">Loading...</span>
+          </div>
+          <span>Refreshing data...</span>
+        </div>
       )}
 
-      {relations?.map((rel) => (
-        <div key={rel.parent.id} className="collection-card">
-          <h4>
-            <strong>{rel.parent.title}</strong>
-            <a
-              href={`https://${shop}/admin/collections/${rel.parent.id}`}
-              style={{ float: "right", color: "#007bff", textDecoration: "none", fontSize: "14px" }}
-              target="_blank"
-              rel="noreferrer"
-              title="Edit collection"
-            >
-              <i className="fas fa-pen"></i>
-            </a>
-          </h4>
-
-          {rel.children.map((child) => (
-            <div key={child.id} className="child-item">
-              <div className="d-flex justify-content-between">
-                <div>
-                  <strong>{child.title}</strong>
-                  <br />
-                  Tag: <code>{child.tag}</code>
-                  <br />
-                  Redirect: <code>{child.redirect}</code>
-                </div>
-                <a
-                  href={`https://${shop}/admin/collections/${child.id}`}
-                  style={{ color: "#555", textDecoration: "none", fontSize: "14px" }}
-                  target="_blank"
-                  rel="noreferrer"
-                  title="Edit collection"
-                >
-                  <i className="fas fa-pen"></i>
-                </a>
-              </div>
-            </div>
-          ))}
+      {!relations?.length && !isRefreshing && (
+        <div className="empty-state">
+          <i className="fas fa-inbox fa-3x mb-3 text-muted"></i>
+          <h3>No Collections Found</h3>
+          <p className="text-muted">No parent-child collections found. Click "Sync Now" to create collections.</p>
         </div>
-      ))}
+      )}
+
+      <div className="collections-grid">
+        {relations?.map((rel) => (
+          <div key={rel.parent.id} className="collection-card">
+            <div className="card-header">
+              <h4 className="card-title">
+                <i className="fas fa-folder-open me-2 text-primary"></i>
+                <strong>{rel.parent.title}</strong>
+              </h4>
+              <a
+                href={`https://${shop}/admin/collections/${rel.parent.id}`}
+                className="edit-link"
+                target="_blank"
+                rel="noreferrer"
+                title="Edit collection"
+              >
+                <i className="fas fa-external-link-alt"></i>
+              </a>
+            </div>
+
+            {rel.children && rel.children.length > 0 ? (
+              <div className="children-list">
+                {rel.children.map((child) => (
+                  <div key={child.id} className="child-item">
+                    <div className="child-content">
+                      <div className="child-header">
+                        <h5 className="child-title">
+                          <i className="fas fa-folder me-2"></i>
+                          {child.title}
+                        </h5>
+                        <a
+                          href={`https://${shop}/admin/collections/${child.id}`}
+                          className="child-edit-link"
+                          target="_blank"
+                          rel="noreferrer"
+                          title="Edit collection"
+                        >
+                          <i className="fas fa-external-link-alt"></i>
+                        </a>
+                      </div>
+                      <div className="child-details">
+                        <div className="detail-item">
+                          <span className="detail-label">
+                            <i className="fas fa-tag me-1"></i>Tag:
+                          </span>
+                          <code className="detail-value">{child.tag}</code>
+                        </div>
+                        <div className="detail-item">
+                          <span className="detail-label">
+                            <i className="fas fa-redo me-1"></i>Redirect:
+                          </span>
+                          <code className="detail-value">{child.redirect}</code>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="no-children">
+                <i className="fas fa-info-circle me-2"></i>
+                No child collections
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
 
       {/* Confirmation Modal */}
       <div
