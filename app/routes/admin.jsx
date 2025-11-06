@@ -2,12 +2,12 @@
 import { json } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
 import { useEffect, useRef, useState } from "react";
-import styles from "../styles/admin.css";
+import adminStyles from "../styles/admin.css?url";
 
 export const links = () => [
   { rel: "stylesheet", href: "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" },
   { rel: "stylesheet", href: "https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" },
-  { rel: "stylesheet", href: styles },
+  { rel: "stylesheet", href: adminStyles },
 ];
 
 export const meta = () => {
@@ -51,35 +51,48 @@ export default function Admin() {
   useEffect(() => {
     // Check if Bootstrap is already loaded
     const initModal = () => {
-      if (confirmationModalRef.current && !modalInstanceRef.current) {
-        const bootstrap = window.bootstrap;
-        if (bootstrap && bootstrap.Modal) {
-          try {
-            modalInstanceRef.current = new bootstrap.Modal(confirmationModalRef.current, {
-              backdrop: true,
-              keyboard: true,
-            });
-            setBootstrapReady(true);
-            console.log("Bootstrap modal initialized successfully");
-          } catch (err) {
-            console.error("Failed to initialize Bootstrap modal:", err);
-          }
+      if (!confirmationModalRef.current) {
+        console.warn("Modal ref not ready yet");
+        return;
+      }
+      
+      if (modalInstanceRef.current) {
+        console.log("Modal already initialized");
+        return;
+      }
+      
+      const bootstrap = window.bootstrap;
+      if (bootstrap && bootstrap.Modal) {
+        try {
+          modalInstanceRef.current = new bootstrap.Modal(confirmationModalRef.current, {
+            backdrop: true,
+            keyboard: true,
+          });
+          setBootstrapReady(true);
+          console.log("Bootstrap modal initialized successfully");
+        } catch (err) {
+          console.error("Failed to initialize Bootstrap modal:", err);
         }
+      } else {
+        console.warn("Bootstrap.Modal not available");
       }
     };
 
     // Try to initialize immediately if Bootstrap is already loaded
     if (window.bootstrap && window.bootstrap.Modal) {
+      console.log("Bootstrap already loaded, initializing modal...");
       // Small delay to ensure DOM is ready
       setTimeout(initModal, 50);
     } else {
+      console.log("Bootstrap not loaded, loading script...");
       // Load Bootstrap JS if not already loaded
       const existingScript = document.querySelector('script[src*="bootstrap"]');
       if (!existingScript) {
         const script = document.createElement("script");
         script.src = "https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js";
-        script.async = false; // Load synchronously to ensure it's ready
+        script.async = true;
         script.onload = () => {
+          console.log("Bootstrap script loaded");
           // Small delay to ensure Bootstrap is fully initialized
           setTimeout(initModal, 100);
         };
@@ -88,9 +101,11 @@ export default function Admin() {
         };
         document.body.appendChild(script);
       } else {
+        console.log("Bootstrap script already exists, waiting for it to load...");
         // Wait a bit if script exists but bootstrap not yet available
         const checkBootstrap = setInterval(() => {
           if (window.bootstrap && window.bootstrap.Modal) {
+            console.log("Bootstrap now available, initializing modal...");
             initModal();
             clearInterval(checkBootstrap);
           }
@@ -121,23 +136,26 @@ export default function Admin() {
   }, []);
 
   const confirmAction = (message, onConfirm) => {
+    console.log("confirmAction called with message:", message);
+    console.log("Modal instance:", modalInstanceRef.current);
+    console.log("Bootstrap ready:", bootstrapReady);
+    
     // Set message
     if (confirmMessageRef.current) {
       confirmMessageRef.current.textContent = message;
     }
 
-    // Remove previous event listeners by cloning the button
-    if (confirmBtnRef.current) {
-      const newBtn = confirmBtnRef.current.cloneNode(true);
-      confirmBtnRef.current.parentNode.replaceChild(newBtn, confirmBtnRef.current);
-      confirmBtnRef.current = newBtn;
-    }
-
     // Try to use Bootstrap modal
-    if (modalInstanceRef.current && bootstrapReady) {
-      // Set up confirm button handler
+    if (modalInstanceRef.current) {
+      console.log("Using Bootstrap modal");
+      // Set up confirm button handler - remove old listeners first
       if (confirmBtnRef.current) {
+        const newBtn = confirmBtnRef.current.cloneNode(true);
+        confirmBtnRef.current.parentNode.replaceChild(newBtn, confirmBtnRef.current);
+        confirmBtnRef.current = newBtn;
+        
         const handleConfirm = () => {
+          console.log("Confirm button clicked");
           modalInstanceRef.current.hide();
           onConfirm();
         };
@@ -155,6 +173,7 @@ export default function Admin() {
         }
       }
     } else {
+      console.log("Bootstrap modal not available, using native confirm");
       // Fallback to native confirm if Bootstrap modal not ready
       if (window.confirm(message)) {
         onConfirm();
@@ -163,7 +182,9 @@ export default function Admin() {
   };
 
   const handleSync = () => {
+    console.log("Sync button clicked");
     confirmAction("Are you sure? This will create collections in your Shopify store.", () => {
+      console.log("Sync confirmed, starting sync...");
       setSyncHint(true);
       setSyncStatus({ show: false, message: "", type: "" });
       setSyncBtnState({ disabled: true, label: "Syncing...", loading: true });
@@ -216,7 +237,9 @@ export default function Admin() {
   };
 
   const handleReset = () => {
+    console.log("Reset button clicked");
     confirmAction("Are you sure? This will delete all parent-child collection relationships.", () => {
+      console.log("Reset confirmed, starting reset...");
       setResetBtnState({ disabled: true, label: "Resetting...", loading: true });
 
       fetch(`${backendUrl}/cleanup-collections?shop=${shop}`)
