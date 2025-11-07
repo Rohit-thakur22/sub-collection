@@ -1,12 +1,19 @@
 // app/routes/admin.jsx
 import { json } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
+import { Spinner, Text } from "@shopify/polaris";
 import { useEffect, useRef, useState } from "react";
 import adminStyles from "../styles/admin.css?url";
 
 export const links = () => [
-  { rel: "stylesheet", href: "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" },
-  { rel: "stylesheet", href: "https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" },
+  {
+    rel: "stylesheet",
+    href: "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css",
+  },
+  {
+    rel: "stylesheet",
+    href: "https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css",
+  },
   { rel: "stylesheet", href: adminStyles },
 ];
 
@@ -19,7 +26,7 @@ export const meta = () => {
 
 export async function loader({ request }) {
   const url = new URL(request.url);
-  const shop = url.searchParams.get("shop");
+  const shop = "sub-collection-testing-2.myshopify.com";
 
   const backendUrl = process.env.BACKEND_URL || "https://subcollection.allgovjobs.com";
   const res = await fetch(`${backendUrl}/api/relations?shop=${shop}`);
@@ -36,13 +43,31 @@ export async function loader({ request }) {
 
 export default function Admin() {
   const loaderData = useLoaderData();
-  const { relations: initialRelations, currentPlan, shop, appUrl, backendUrl } = loaderData;
+  const {
+    relations: initialRelations,
+    currentPlan,
+    shop,
+    appUrl,
+    backendUrl,
+  } = loaderData;
   const [relations, setRelations] = useState(initialRelations || []);
-  const [syncStatus, setSyncStatus] = useState({ show: false, message: "", type: "" });
+  const [syncStatus, setSyncStatus] = useState({
+    show: false,
+    message: "",
+    type: "",
+  });
   const [syncProgress, setSyncProgress] = useState({ show: false, value: 0 });
   const [syncHint, setSyncHint] = useState(false);
-  const [syncBtnState, setSyncBtnState] = useState({ disabled: false, label: "Sync Now", loading: false });
-  const [resetBtnState, setResetBtnState] = useState({ disabled: false, label: "Reset", loading: false });
+  const [syncBtnState, setSyncBtnState] = useState({
+    disabled: false,
+    label: "Sync Now",
+    loading: false,
+  });
+  const [resetBtnState, setResetBtnState] = useState({
+    disabled: false,
+    label: "Reset",
+    loading: false,
+  });
   const [bootstrapReady, setBootstrapReady] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const confirmationModalRef = useRef(null);
@@ -55,28 +80,35 @@ export default function Admin() {
   const refreshData = async () => {
     setIsRefreshing(true);
     try {
-      console.log("Fetching relations from:", `${backendUrl}/api/relations?shop=${shop}`);
+      console.log(
+        "Fetching relations from:",
+        `${backendUrl}/api/relations?shop=${shop}`,
+      );
       const res = await fetch(`${backendUrl}/api/relations?shop=${shop}`);
-      
+
       if (!res.ok) {
         throw new Error(`HTTP error! status: ${res.status}`);
       }
-      
+
       const data = await res.json();
       console.log("API Response:", data);
       console.log("Relations data:", data.relations);
       console.log("Relations count:", data.relations?.length || 0);
-      
+
       // Ensure we have the correct data structure
       const relationsData = Array.isArray(data.relations) ? data.relations : [];
       setRelations(relationsData);
-      
+
       if (relationsData.length > 0) {
         console.log("First relation sample:", relationsData[0]);
       }
     } catch (err) {
       console.error("Failed to refresh data:", err);
-      setSyncStatus({ show: true, message: "Failed to refresh data. Please reload the page.", type: "danger" });
+      setSyncStatus({
+        show: true,
+        message: "Failed to refresh data. Please reload the page.",
+        type: "danger",
+      });
     } finally {
       setIsRefreshing(false);
     }
@@ -89,19 +121,22 @@ export default function Admin() {
         console.warn("Modal ref not ready yet");
         return;
       }
-      
+
       if (modalInstanceRef.current) {
         console.log("Modal already initialized");
         return;
       }
-      
+
       const bootstrap = window.bootstrap;
       if (bootstrap && bootstrap.Modal) {
         try {
-          modalInstanceRef.current = new bootstrap.Modal(confirmationModalRef.current, {
-            backdrop: true,
-            keyboard: true,
-          });
+          modalInstanceRef.current = new bootstrap.Modal(
+            confirmationModalRef.current,
+            {
+              backdrop: true,
+              keyboard: true,
+            },
+          );
           setBootstrapReady(true);
           console.log("Bootstrap modal initialized successfully");
         } catch (err) {
@@ -123,7 +158,8 @@ export default function Admin() {
       const existingScript = document.querySelector('script[src*="bootstrap"]');
       if (!existingScript) {
         const script = document.createElement("script");
-        script.src = "https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js";
+        script.src =
+          "https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js";
         script.async = true;
         script.onload = () => {
           console.log("Bootstrap script loaded");
@@ -135,7 +171,9 @@ export default function Admin() {
         };
         document.body.appendChild(script);
       } else {
-        console.log("Bootstrap script already exists, waiting for it to load...");
+        console.log(
+          "Bootstrap script already exists, waiting for it to load...",
+        );
         // Wait a bit if script exists but bootstrap not yet available
         const checkBootstrap = setInterval(() => {
           if (window.bootstrap && window.bootstrap.Modal) {
@@ -147,7 +185,9 @@ export default function Admin() {
         setTimeout(() => {
           clearInterval(checkBootstrap);
           if (!modalInstanceRef.current) {
-            console.warn("Bootstrap modal initialization timeout - using fallback");
+            console.warn(
+              "Bootstrap modal initialization timeout - using fallback",
+            );
           }
         }, 5000);
       }
@@ -173,7 +213,7 @@ export default function Admin() {
     console.log("confirmAction called with message:", message);
     console.log("Modal instance:", modalInstanceRef.current);
     console.log("Bootstrap ready:", bootstrapReady);
-    
+
     // Set message
     if (confirmMessageRef.current) {
       confirmMessageRef.current.textContent = message;
@@ -185,9 +225,12 @@ export default function Admin() {
       // Set up confirm button handler - remove old listeners first
       if (confirmBtnRef.current) {
         const newBtn = confirmBtnRef.current.cloneNode(true);
-        confirmBtnRef.current.parentNode.replaceChild(newBtn, confirmBtnRef.current);
+        confirmBtnRef.current.parentNode.replaceChild(
+          newBtn,
+          confirmBtnRef.current,
+        );
         confirmBtnRef.current = newBtn;
-        
+
         const handleConfirm = () => {
           console.log("Confirm button clicked");
           modalInstanceRef.current.hide();
@@ -195,7 +238,7 @@ export default function Admin() {
         };
         confirmBtnRef.current.onclick = handleConfirm;
       }
-      
+
       // Show modal
       try {
         modalInstanceRef.current.show();
@@ -217,107 +260,219 @@ export default function Admin() {
 
   const handleSync = () => {
     console.log("Sync button clicked");
-    confirmAction("Are you sure? This will create collections in your Shopify store.", () => {
-      console.log("Sync confirmed, starting sync...");
-      setSyncHint(true);
-      setSyncStatus({ show: false, message: "", type: "" });
-      setSyncBtnState({ disabled: true, label: "Syncing...", loading: true });
-      setSyncProgress({ show: true, value: 0 });
+    confirmAction(
+      "Are you sure? This will create collections in your Shopify store.",
+      () => {
+        console.log("Sync confirmed, starting sync...");
+        setSyncHint(true);
+        setSyncStatus({ show: false, message: "", type: "" });
+        setSyncBtnState({ disabled: true, label: "Syncing...", loading: true });
+        setSyncProgress({ show: true, value: 0 });
 
-      // Start sync (fire and forget)
-      fetch(`${backendUrl}/sync-collections?shop=${shop}`)
-        .then((response) => {
-          console.log("Sync request initiated, status:", response.status);
-        })
-        .catch((err) => {
-          console.error("Sync request failed:", err);
-          setSyncStatus({ show: true, message: "Failed to start sync. Please try again.", type: "danger" });
-          setSyncBtnState({ disabled: false, label: "Sync Now", loading: false });
-          setSyncHint(false);
-          setSyncProgress({ show: false, value: 0 });
-        });
+        // Start sync (fire and forget)
+        fetch(`${backendUrl}/sync-collections?shop=${shop}`)
+          .then((response) => {
+            console.log("Sync request initiated, status:", response.status);
+          })
+          .catch((err) => {
+            console.error("Sync request failed:", err);
+            setSyncStatus({
+              show: true,
+              message: "Failed to start sync. Please try again.",
+              type: "danger",
+            });
+            setSyncBtnState({
+              disabled: false,
+              label: "Sync Now",
+              loading: false,
+            });
+            setSyncHint(false);
+            setSyncProgress({ show: false, value: 0 });
+          });
 
-      // Listen for real-time progress
-      console.log("Connecting to EventSource:", `${backendUrl}/sync-stream?shop=${shop}`);
-      const evtSource = new EventSource(`${backendUrl}/sync-stream?shop=${shop}`);
-      evtSourceRef.current = evtSource;
+        // Listen for real-time progress
+        console.log(
+          "Connecting to EventSource:",
+          `${backendUrl}/sync-stream?shop=${shop}`,
+        );
+        const evtSource = new EventSource(
+          `${backendUrl}/sync-stream?shop=${shop}`,
+        );
+        evtSourceRef.current = evtSource;
 
-      evtSource.onopen = () => {
-        console.log("EventSource connection opened");
-      };
+        evtSource.onopen = () => {
+          console.log("EventSource connection opened");
+        };
 
-      evtSource.onmessage = (e) => {
-        try {
-          console.log("EventSource message received:", e.data);
-          const data = JSON.parse(e.data);
-          const progress = typeof data.progress === 'number' ? Math.min(100, Math.max(0, data.progress)) : 0;
-          console.log("Progress update:", progress + "%");
-          
-          setSyncProgress({ show: true, value: progress });
+        evtSource.onmessage = (e) => {
+          try {
+            console.log("EventSource message received:", e.data);
+            const data = JSON.parse(e.data);
+            const progress =
+              typeof data.progress === "number"
+                ? Math.min(100, Math.max(0, data.progress))
+                : 0;
+            console.log("Progress update:", progress + "%");
 
-          if (progress >= 100) {
-            console.log("Sync completed, closing EventSource");
+            setSyncProgress({ show: true, value: progress });
+
+            if (progress >= 100) {
+              console.log("Sync completed, closing EventSource");
+              evtSource.close();
+              evtSourceRef.current = null;
+              setSyncBtnState({
+                disabled: false,
+                label: "Sync Now",
+                loading: false,
+              });
+              setSyncStatus({
+                show: true,
+                message: "Sync completed successfully. Refreshing data...",
+                type: "success",
+              });
+              setSyncHint(false);
+
+              // Keep progress bar at 100% for a moment, then refresh data
+              setTimeout(async () => {
+                console.log("Refreshing data after sync...");
+                await refreshData();
+                setSyncProgress({ show: false, value: 0 });
+                setSyncStatus({
+                  show: true,
+                  message:
+                    "Sync completed successfully! Data has been updated.",
+                  type: "success",
+                });
+              }, 1500);
+            }
+          } catch (err) {
+            console.error("Error parsing progress:", err, "Raw data:", e.data);
+          }
+        };
+
+        evtSource.onerror = (err) => {
+          console.error("EventSource error:", err);
+          // Don't close immediately on first error - might be temporary
+          if (evtSource.readyState === EventSource.CLOSED) {
             evtSource.close();
             evtSourceRef.current = null;
-            setSyncBtnState({ disabled: false, label: "Sync Now", loading: false });
-            setSyncStatus({ show: true, message: "Sync completed successfully. Refreshing data...", type: "success" });
+            setSyncStatus({
+              show: true,
+              message: "Sync connection lost. Please check if sync completed.",
+              type: "warning",
+            });
+            setSyncBtnState({
+              disabled: false,
+              label: "Sync Now",
+              loading: false,
+            });
             setSyncHint(false);
-            
-            // Keep progress bar at 100% for a moment, then refresh data
+            // Try to refresh data anyway in case sync completed
             setTimeout(async () => {
-              console.log("Refreshing data after sync...");
               await refreshData();
-              setSyncProgress({ show: false, value: 0 });
-              setSyncStatus({ show: true, message: "Sync completed successfully! Data has been updated.", type: "success" });
-            }, 1500);
+            }, 2000);
           }
-        } catch (err) {
-          console.error("Error parsing progress:", err, "Raw data:", e.data);
-        }
-      };
-
-      evtSource.onerror = (err) => {
-        console.error("EventSource error:", err);
-        // Don't close immediately on first error - might be temporary
-        if (evtSource.readyState === EventSource.CLOSED) {
-          evtSource.close();
-          evtSourceRef.current = null;
-          setSyncStatus({ show: true, message: "Sync connection lost. Please check if sync completed.", type: "warning" });
-          setSyncBtnState({ disabled: false, label: "Sync Now", loading: false });
-          setSyncHint(false);
-          // Try to refresh data anyway in case sync completed
-          setTimeout(async () => {
-            await refreshData();
-          }, 2000);
-        }
-      };
-    });
+        };
+      },
+    );
   };
 
   const handleReset = () => {
     console.log("Reset button clicked");
-    confirmAction("Are you sure? This will delete all parent-child collection relationships.", () => {
-      console.log("Reset confirmed, starting reset...");
-      setResetBtnState({ disabled: true, label: "Resetting...", loading: true });
-
-      fetch(`${backendUrl}/cleanup-collections?shop=${shop}`)
-        .then((response) => {
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
-          setResetBtnState({ disabled: false, label: "Done!", loading: false });
-          // Refresh data after reset
-          setTimeout(async () => {
-            await refreshData();
-          }, 500);
-        })
-        .catch((err) => {
-          console.error("Reset failed:", err);
-          setResetBtnState({ disabled: false, label: "Reset", loading: false });
-          alert("Reset failed. Please try again.");
+    confirmAction(
+      "Are you sure? This will delete all parent-child collection relationships.",
+      () => {
+        console.log("Reset confirmed, starting reset...");
+        setResetBtnState({
+          disabled: true,
+          label: "Resetting...",
+          loading: true,
         });
-    });
+
+        fetch(`${backendUrl}/cleanup-collections?shop=${shop}`)
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            setResetBtnState({
+              disabled: false,
+              label: "Done!",
+              loading: false,
+            });
+            // Refresh data after reset
+            setTimeout(async () => {
+              await refreshData();
+            }, 500);
+          })
+          .catch((err) => {
+            console.error("Reset failed:", err);
+            setResetBtnState({
+              disabled: false,
+              label: "Reset",
+              loading: false,
+            });
+            alert("Reset failed. Please try again.");
+          });
+      },
+    );
   };
+
+  const [isAuthorized, setIsAuthorized] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const shop = "sub-collection-testing-2.myshopify.com";
+    if (!shop) {
+      setIsCheckingAuth(false);
+      return;
+    }
+
+    fetch(`https://subcollection.allgovjobs.com/api/check-auth?shop=${shop}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (!data.authorized) {
+          const installUrl = `https://subcollection.allgovjobs.com/shopify?shop=${shop}`;
+          if (window.top !== window.self) {
+            window.top.location.href = installUrl;
+          } else {
+            window.location.href = installUrl;
+          }
+        } else {
+          setIsAuthorized(true);
+        }
+      })
+      .catch((err) => {
+        console.error("Auth check failed:", err);
+      })
+      .finally(() => {
+        setIsCheckingAuth(false);
+      });
+  }, []);
+
+  if (isCheckingAuth) {
+    // prevent UI flash — show loader while checking token
+    return (
+      <div
+        style={{
+          height: "100vh",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <Spinner accessibilityLabel="Loading" size="large" />
+        <Text
+          variant="bodyLg"
+          as="p"
+          tone="subdued"
+          style={{ marginLeft: "8px" }}
+        >
+          Verifying authentication...
+        </Text>
+      </div>
+    );
+  }
 
   return (
     <div className="admin-container">
@@ -327,12 +482,18 @@ export default function Admin() {
             <i className="fas fa-sitemap me-2"></i>
             Parent & Child Collection Relations
           </h1>
-          <p className="page-subtitle">Manage your collection hierarchy and relationships</p>
+          <p className="page-subtitle">
+            Manage your collection hierarchy and relationships
+          </p>
         </div>
-        
+
         <div className="header-actions">
           {currentPlan?.name === "Basic" && (
-            <a href={`${appUrl}/plans?shop=${shop}`} className="btn btn-outline-dark" id="plan-btn">
+            <a
+              href={`${appUrl}/plans?shop=${shop}`}
+              className="btn btn-outline-dark"
+              id="plan-btn"
+            >
               <i className="fas fa-crown me-2"></i>
               <span id="plan-label">Explore Plans</span>
             </a>
@@ -378,8 +539,8 @@ export default function Admin() {
 
       {syncHint && (
         <div id="sync-hint" className="text-muted mb-2">
-          ⏳ This may take a few minutes. You can safely close this window or continue working — the sync will
-          continue in the background.
+          ⏳ This may take a few minutes. You can safely close this window or
+          continue working — the sync will continue in the background.
         </div>
       )}
 
@@ -391,9 +552,9 @@ export default function Admin() {
               id="sync-progress-bar"
               className="progress-bar progress-bar-striped progress-bar-animated"
               role="progressbar"
-              style={{ 
+              style={{
                 width: `${syncProgress.value}%`,
-                minWidth: syncProgress.value > 0 ? '2em' : '0'
+                minWidth: syncProgress.value > 0 ? "2em" : "0",
               }}
               aria-valuenow={syncProgress.value}
               aria-valuemin="0"
@@ -428,7 +589,10 @@ export default function Admin() {
         <div className="empty-state">
           <i className="fas fa-inbox fa-3x mb-3 text-muted"></i>
           <h3>No Collections Found</h3>
-          <p className="text-muted">No parent-child collections found. Click "Sync Now" to create collections.</p>
+          <p className="text-muted">
+            No parent-child collections found. Click "Sync Now" to create
+            collections.
+          </p>
         </div>
       )}
 
@@ -440,7 +604,7 @@ export default function Admin() {
             console.log("Parent:", rel.parent);
             console.log("Children:", rel.children);
           }
-          
+
           // Ensure we have valid parent and children
           if (!rel || !rel.parent) {
             console.warn("Invalid relation structure:", rel);
@@ -452,7 +616,7 @@ export default function Admin() {
               <div className="card-header">
                 <h4 className="card-title">
                   <i className="fas fa-folder-open me-2 text-primary"></i>
-                  <strong>{rel.parent.title || 'Untitled Collection'}</strong>
+                  <strong>{rel.parent.title || "Untitled Collection"}</strong>
                 </h4>
                 <a
                   href={`https://${shop}/admin/collections/${rel.parent.id}`}
@@ -465,7 +629,9 @@ export default function Admin() {
                 </a>
               </div>
 
-              {rel.children && Array.isArray(rel.children) && rel.children.length > 0 ? (
+              {rel.children &&
+              Array.isArray(rel.children) &&
+              rel.children.length > 0 ? (
                 <div className="children-list">
                   {rel.children.map((child, childIndex) => {
                     if (!child || !child.id) {
@@ -478,7 +644,7 @@ export default function Admin() {
                           <div className="child-header">
                             <h5 className="child-title">
                               <i className="fas fa-folder me-2"></i>
-                              {child.title || 'Untitled Child'}
+                              {child.title || "Untitled Child"}
                             </h5>
                             <a
                               href={`https://${shop}/admin/collections/${child.id}`}
@@ -495,13 +661,17 @@ export default function Admin() {
                               <span className="detail-label">
                                 <i className="fas fa-tag me-1"></i>Tag:
                               </span>
-                              <code className="detail-value">{child.tag || 'N/A'}</code>
+                              <code className="detail-value">
+                                {child.tag || "N/A"}
+                              </code>
                             </div>
                             <div className="detail-item">
                               <span className="detail-label">
                                 <i className="fas fa-redo me-1"></i>Redirect:
                               </span>
-                              <code className="detail-value">{child.redirect || 'N/A'}</code>
+                              <code className="detail-value">
+                                {child.redirect || "N/A"}
+                              </code>
                             </div>
                           </div>
                         </div>
@@ -542,14 +712,27 @@ export default function Admin() {
                 aria-label="Close"
               ></button>
             </div>
-            <div className="modal-body" id="confirmationMessage" ref={confirmMessageRef}>
+            <div
+              className="modal-body"
+              id="confirmationMessage"
+              ref={confirmMessageRef}
+            >
               {/* Dynamic message injected here */}
             </div>
             <div className="modal-footer">
-              <button type="button" className="btn btn-secondary" data-bs-dismiss="modal">
+              <button
+                type="button"
+                className="btn btn-secondary"
+                data-bs-dismiss="modal"
+              >
                 Cancel
               </button>
-              <button type="button" className="btn btn-primary" id="confirmActionBtn" ref={confirmBtnRef}>
+              <button
+                type="button"
+                className="btn btn-primary"
+                id="confirmActionBtn"
+                ref={confirmBtnRef}
+              >
                 Continue
               </button>
             </div>

@@ -3,8 +3,14 @@ import { useLoaderData } from "@remix-run/react";
 import plansStyles from "../styles/plans.css?url";
 
 export const links = () => [
-  { rel: "stylesheet", href: "https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" },
-  { rel: "stylesheet", href: "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" },
+  {
+    rel: "stylesheet",
+    href: "https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css",
+  },
+  {
+    rel: "stylesheet",
+    href: "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css",
+  },
   { rel: "stylesheet", href: plansStyles },
 ];
 
@@ -17,9 +23,9 @@ export const meta = () => {
 
 export async function loader({ request }) {
   const url = new URL(request.url);
-  const shop = url.searchParams.get("shop");
+  const shop = 'sub-collection-testing-2.myshopify.com';
 
-  const backendUrl = process.env.BACKEND_URL || "https://subcollection.allgovjobs.com";
+  const backendUrl = process.env.BACKEND_URL || "https://subcollection.allgovjobs.com/";
   const plansRes = await fetch(`${backendUrl}/api/plans?shop=${shop}`);
   const { plans, currentPlan } = await plansRes.json();
 
@@ -38,7 +44,7 @@ export default function Plans() {
           headers: {
             Accept: "application/json",
           },
-        }
+        },
       );
 
       if (!response.ok) throw new Error("Network response was not ok");
@@ -69,7 +75,9 @@ export default function Plans() {
       <div className="plans-grid">
         {plans?.map((plan) => (
           <div key={plan._id} className="plan-card-wrapper">
-            <div className={`plan-card ${currentPlan?.name === plan.name ? 'current-plan' : ''}`}>
+            <div
+              className={`plan-card ${currentPlan?.name === plan.name ? "current-plan" : ""}`}
+            >
               {currentPlan?.name === plan.name && (
                 <div className="current-badge">
                   <i className="fas fa-check-circle me-1"></i>
@@ -85,7 +93,7 @@ export default function Plans() {
                     <span className="price-interval">/{plan.interval}</span>
                   </div>
                 </div>
-                
+
                 <div className="plan-features">
                   <div className="feature-item">
                     <i className="fas fa-check-circle text-success me-2"></i>
