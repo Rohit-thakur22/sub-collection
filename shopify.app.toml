@@ -2,7 +2,7 @@
 
 client_id = "5f27c34c9e5cad11b9cd930283f2a26f"
 name = "sub-collection-app"
-application_url = "https://subcollection.allgovjobs.com/"
+application_url = "https://subcollection.allgovjobs.com/app"
 embedded = true
 
 [build]
@@ -18,6 +18,7 @@ api_version = "2026-01"
   [[webhooks.subscriptions]]
   topics = [ "app/scopes_update" ]
   uri = "/webhooks/app/scopes_update"
+  
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
