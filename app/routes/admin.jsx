@@ -28,7 +28,7 @@ export async function loader({ request }) {
   const url = new URL(request.url);
   const shop = "sub-collection-testing-2.myshopify.com";
 
-  const backendUrl = process.env.BACKEND_URL || "https://subcollection.allgovjobs.com";
+  const backendUrl = process.env.BACKEND_URL || "https://subcollection.allgovjobs.com/backend";
   const res = await fetch(`${backendUrl}/api/relations?shop=${shop}`);
   const { relations, currentPlan } = await res.json();
 
