@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "build": "remix vite:build",
-    "dev": "shopify app dev",
+    "dev": "remix dev --host 127.0.0.1 --port 8002",
     "config:link": "shopify app config link",
     "generate": "shopify app generate",
     "deploy": "shopify app deploy",
