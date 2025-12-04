@@ -87,8 +87,6 @@ export default function Index() {
           <p style={{ margin: "6px 0 0", color: "#555" }}>Simple development launcher for your Remix + Nest Shopify app</p>
         </div>
         <div style={{ textAlign: "right", color: "#666", fontSize: 13 }}>
-          <div>Now: {time}</div>
-          <div style={{ marginTop: 6 }}>Shop: <strong>{shop}</strong></div>
         </div>
       </header>
 
@@ -99,14 +97,14 @@ export default function Index() {
 
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 12 }}>
 
-          <a
+          {/* <a
             href={`${backendUrl}/api/check-auth?shop=${shop}`}
             target="_blank"
             rel="noreferrer"
             style={{ padding: "8px 12px", borderRadius: 6, border: "1px solid #888", background: "#fff", color: "#444", textDecoration: "none", display: "inline-flex", alignItems: "center" }}
           >
             Check Auth (backend)
-          </a>
+          </a> */}
 
           <Link to="/auth/login" style={{ padding: "8px 12px", borderRadius: 6, border: "1px solid #ddd", background: "#fff", color: "#333", textDecoration: "none", display: "inline-flex", alignItems: "center" }}>
             Auth Login
@@ -116,8 +114,7 @@ export default function Index() {
         <section style={{ marginTop: 8 }}>
           <h3 style={{ margin: "8px 0" }}>Status</h3>
           <ul style={{ margin: 0, paddingLeft: 18 }}>
-            <li>Backend: <strong>{backendUrl}</strong></li>
-            <li>Shopify shop: <strong>{shop}</strong></li>
+            {/* <li>Backend: <strong>{backendUrl}</strong></li> */}
             <li>Installed pages: <strong>/admin</strong>, <strong>/auth/*</strong></li>
           </ul>
         </section>
