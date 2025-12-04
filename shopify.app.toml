@@ -2,7 +2,7 @@
 
 client_id = "5f27c34c9e5cad11b9cd930283f2a26f"
 name = "sub-collection-app"
-application_url = "https://subcollection.allgovjobs.com/app"
+application_url = "https://subcollection.allgovjobs.com"
 embedded = true
 
 [build]
